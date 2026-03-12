@@ -1,121 +1,124 @@
-let tasks = [];
+const myForm = document.querySelector('#myForm');
+const inputs = document.querySelectorAll('#myForm .form-input');
+const myTable = document.querySelector('#myTable tbody');
 
-function loadTasks() {
-    let tasksData = localStorage.getItem('tasks');
-    if (tasksData) {
-        tasks = JSON.parse(tasksData);
+let list = JSON.parse(localStorage.getItem('TaskList')) || [];
+let EditTask = JSON.parse(localStorage.getItem('EditTask')) || {};
+let data = {};
+
+inputs?.forEach((input) => {
+
+    input.addEventListener('input', (e) => {
+
+        const { name, value } = e.target;
+
+        data = {
+            ...data,
+            [name]: value
+        };
+
+    });
+
+});
+
+myForm?.addEventListener('submit', (e) => {
+
+    e.preventDefault();
+
+    if (data.id) {
+
+        list = list.map((item) => {
+            return item.id === data.id ? data : item;
+        });
+
     } else {
-        tasks = [];
+
+        list.push({
+            ...data,
+            id: Date.now()
+        });
+
     }
-    console.log('Loaded ' + tasks.length + ' tasks');
+
+    localStorage.setItem('TaskList', JSON.stringify(list));
+    localStorage.removeItem('EditTask');
+
+    location.href = "../html/view-task.html";
+
+});
+
+const handleDisplay = (list) => {
+
+    if (!myTable) return;
+
+    myTable.innerHTML = "";
+
+    list.forEach((item, index) => {
+
+        const { id, title, description, duedate, priority } = item;
+
+        let row = document.createElement('tr');
+
+        row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${title}</td>
+        <td>${description}</td>
+        <td>${duedate}</td>
+        <td>${priority}</td>
+        <td>
+        <button class="btn btn-danger" onclick="handleDelete(${id})">Delete</button>
+        <button class="btn btn-warning" onclick="handleEdit(${id})">Edit</button>
+        </td>
+        `;
+
+        myTable.appendChild(row);
+
+    });
+
+};
+
+if (myTable) {
+
+    handleDisplay(list);
+
 }
 
-function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    console.log('Saved tasks');
-}
+window.handleDelete = (id) => {
 
-function addTask(title, desc, dueDate, priority) {
-    loadTasks();
-    let newTask = {
-        id: Date.now(),
-        title: title,
-        desc: desc,
-        dueDate: dueDate,
-        priority: priority,
-        status: 'pending'
-    };
-    tasks.push(newTask);
-    saveTasks();
-    alert('Task added successfully!');
-    window.location.href = 'index.html';
-}
+    list = list.filter((item) => item.id != id);
 
-function deleteTask(id) {
-    if (confirm('Are you sure to delete this task?')) {
-        loadTasks();
-        for (let i = 0; i < tasks.length; i++) {
-            if (tasks[i].id == id) {
-                tasks.splice(i, 1);
-                break;
-            }
-        }
-        saveTasks();
-        alert('Task deleted!');
-        window.location.reload();
-    }
-}
+    localStorage.setItem('TaskList', JSON.stringify(list));
 
-function updateTask(id, title, desc, dueDate, priority) {
-    loadTasks();
-    for (let i = 0; i < tasks.length; i++) {
-        if (tasks[i].id == id) {
-            tasks[i].title = title;
-            tasks[i].desc = desc;
-            tasks[i].dueDate = dueDate;
-            tasks[i].priority = priority;
-            break;
-        }
-    }
-    saveTasks();
-    alert('Task updated!');
-    window.location.href = 'index.html';
-}
+    handleDisplay(list);
 
-function toggleStatus(id) {
-    loadTasks();
-    for (let i = 0; i < tasks.length; i++) {
-        if (tasks[i].id == id) {
-            if (tasks[i].status == 'pending') {
-                tasks[i].status = 'completed';
-            } else {
-                tasks[i].status = 'pending';
-            }
-            break;
-        }
-    }
-    saveTasks();
-    window.location.reload();
-}
+};
 
-function getStats() {
-    loadTasks();
-    let total = tasks.length;
-    let pending = 0;
-    let completed = 0;
-    for (let i = 0; i < tasks.length; i++) {
-        if (tasks[i].status == 'pending') {
-            pending++;
-        } else {
-            completed++;
-        }
-    }
-    return { total: total, pending: pending, completed: completed };
-}
+window.handleEdit = (id) => {
 
-function getAllTasks() {
-    loadTasks();
-    for (let i = 0; i < tasks.length; i++) {
-        for (let j = i + 1; j < tasks.length; j++) {
-            if (tasks[i].priority == 'low' && tasks[j].priority == 'high') {
-                let temp = tasks[i];
-                tasks[i] = tasks[j];
-                tasks[j] = temp;
-            }
-        }
-    }
-    return tasks;
-}
+    const task = list.find((item) => item.id == id);
 
-function searchTasks(searchTerm) {
-    loadTasks();
-    let results = [];
-    for (let i = 0; i < tasks.length; i++) {
-        if (tasks[i].title.toLowerCase().includes(searchTerm.toLowerCase())) {
-            results.push(tasks[i]);
-        }
-    }
-    return results;
-}
+    localStorage.setItem('EditTask', JSON.stringify(task));
 
-loadTasks();
+    location.href = "../html/edit-task.html";
+
+};
+
+const displayTaskData = () => {
+
+    inputs.forEach((input) => {
+
+        const { name } = input;
+
+        input.value = EditTask[name] || "";
+
+    });
+
+};
+
+if (EditTask.id) {
+
+    data = EditTask;
+
+    displayTaskData();
+
+}
